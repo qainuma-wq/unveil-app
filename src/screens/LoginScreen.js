@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   View,
@@ -7,19 +6,27 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
-export default function LoginScreen() {
+
+export default function LoginScreen({ navigation }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+
+  const handleLogin = () => {
+    navigation.replace("Home", { username: username });
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.card}>
         <Text style={styles.title}>Start here</Text>
+
         <TextInput
           placeholder="Username"
           style={styles.input}
           value={username}
           onChangeText={setUsername}
         />
+
         <TextInput
           placeholder="Password"
           style={styles.input}
@@ -27,13 +34,16 @@ export default function LoginScreen() {
           value={password}
           onChangeText={setPassword}
         />
-        <TouchableOpacity style={styles.button}>
+
+        <TouchableOpacity style={styles.button} onPress={handleLogin}>
           <Text style={styles.buttonText}>Login</Text>
         </TouchableOpacity>
+
       </View>
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,

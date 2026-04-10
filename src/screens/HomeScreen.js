@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,15 @@ import {
   FlatList,
 } from "react-native";
 
+// import { db } from "../firebase";
+// import {
+//   collection,
+//   addDoc,
+//   onSnapshot,
+//   query,
+//   orderBy,
+// } from "firebase/firestore";
+
 export default function HomeScreen({ route }) {
   const { username } = route.params;
 
@@ -15,18 +24,32 @@ export default function HomeScreen({ route }) {
   const [tweet, setTweet] = useState("");
   const [tweets, setTweets] = useState([]);
 
-  const postTweet = () => {
-    if (tweet.trim() === "") return;
+  // 🔥 AMBIL DATA REALTIME DARI FIREBASE
+  useEffect(() => {
+    const q = query(collection(db, "tweets"), orderBy("createdAt", "desc"));
 
-    const newTweet = {
-      id: Date.now().toString(),
-      user: username,
-      text: tweet,
-    };
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setTweets(data);
+    });
 
-    setTweets([newTweet, ...tweets]);
-    setTweet("");
-  };
+    return unsubscribe;
+  }, []);
+
+  // const postTweet = async () => {
+  //   if (tweet.trim() === "") return;
+
+  //   await addDoc(collection(db, "tweets"), {
+  //     user: username,
+  //     text: tweet,
+  //     createdAt: new Date(),
+  //   });
+
+  //   setTweet("");
+  // };
 
   const renderTweet = ({ item }) => (
     <View style={styles.tweetBox}>
@@ -62,6 +85,7 @@ export default function HomeScreen({ route }) {
         }
         renderItem={renderTweet}
         keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingBottom: 100 }}
       />
 
       {/* Input */}
@@ -74,7 +98,7 @@ export default function HomeScreen({ route }) {
         />
 
         <TouchableOpacity style={styles.postBtn} onPress={postTweet}>
-          <Text style={styles.postText}>Post</Text>
+          <Text style={styles.postText}>Send</Text>
         </TouchableOpacity>
       </View>
 
@@ -109,9 +133,8 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 15,
     marginBottom: 15,
-
-    width: 350,           
-    alignSelf: "center",  
+    width: 350,
+    alignSelf: "center",
   },
 
   username: {

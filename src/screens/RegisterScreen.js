@@ -1,20 +1,19 @@
 import React, { useState } from "react";
 import {
   View,
-  Text,
   TextInput,
   TouchableOpacity,
+  Text,
   StyleSheet,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { db } from "../firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 
-export default function LoginScreen({ navigation }) {
+export default function RegisterScreen({ navigation }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = async () => {
+  const handleRegister = async () => {
     if (!username.trim() || !password.trim()) {
       alert("Fill all fields");
       return;
@@ -22,45 +21,27 @@ export default function LoginScreen({ navigation }) {
 
     const cleanUsername = username.trim().toLowerCase();
 
-    try {
-      const ref = doc(db, "users", cleanUsername);
-      const snap = await getDoc(ref);
+    const ref = doc(db, "users", cleanUsername);
+    const snap = await getDoc(ref);
 
-      if (!snap.exists()) {
-        await AsyncStorage.removeItem("user"); // 🔥 penting
-        alert("User not found");
-        return;
-      }
-
-      const data = snap.data();
-
-      if (data.password !== password) {
-        await AsyncStorage.removeItem("user"); // 🔥 penting
-        alert("Wrong password");
-        return;
-      }
-
-      await AsyncStorage.setItem("user", cleanUsername);
-
-      if (data.avatar === null) {
-        navigation.replace("Avatar", { username: cleanUsername });
-      } else {
-        navigation.replace("Home", { username: cleanUsername });
-      }
-
-    } catch (e) {
-      alert("Something went wrong");
+    if (snap.exists()) {
+      alert("Username already exists");
+      return;
     }
+
+    await setDoc(ref, {
+      username: cleanUsername,
+      password: password,
+      avatar: null,
+    });
+
+    navigation.replace("Avatar", { username: cleanUsername });
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.title}>Welcome back</Text>
-
-        <Text style={styles.quote}>
-          Keep it anonymous. Mystery looks good on you.
-        </Text>
+        <Text style={styles.title}>Create account</Text>
 
         <TextInput
           placeholder="Username"
@@ -77,13 +58,13 @@ export default function LoginScreen({ navigation }) {
           onChangeText={setPassword}
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Login</Text>
+        <TouchableOpacity style={styles.button} onPress={handleRegister}>
+          <Text style={styles.buttonText}>Register</Text>
         </TouchableOpacity>
 
         {/* 🔥 BALIKIN OPTION */}
-        <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-          <Text style={styles.link}>Don’t have an account?</Text>
+        <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+          <Text style={styles.link}>Already have an account?</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -105,13 +86,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    marginBottom: 10,
-    fontWeight: "600",
-  },
-  quote: {
-    fontSize: 13,
     marginBottom: 20,
-    color: "#555",
+    fontWeight: "600",
   },
   input: {
     backgroundColor: "#F2F2F2",
@@ -124,7 +100,6 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 10,
     alignItems: "center",
-    marginTop: 10,
   },
   buttonText: {
     fontWeight: "bold",

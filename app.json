@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
 
-    "icon": "./assets/VEILIES.png",
+    "icon": "./assets/veilies.png",
 
     "splash": {
       "image": "./assets/splash.png",

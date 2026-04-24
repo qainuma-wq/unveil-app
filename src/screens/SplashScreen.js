@@ -5,23 +5,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export default function SplashScreen({ navigation }) {
   useEffect(() => {
     const startApp = async () => {
-      try {
-        const user = await Promise.race([
-          AsyncStorage.getItem("user"),
-          new Promise((resolve) => setTimeout(() => resolve(null), 1500)),
-        ]);
+      const user = await AsyncStorage.getItem("user");
 
-        setTimeout(() => {
-          if (user) {
-            navigation.replace("Home", { username: user });
-          } else {
-            navigation.replace("Login");
-          }
-        }, 2000);
-
-      } catch (e) {
-        navigation.replace("Login");
-      }
+      setTimeout(() => {
+        if (user) {
+          navigation.replace("Home", { username: user });
+        } else {
+          navigation.replace("Login");
+        }
+      }, 2000); // ⏱️ 2 detik pasti muncul
     };
 
     startApp();

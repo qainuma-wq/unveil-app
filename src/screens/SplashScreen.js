@@ -13,7 +13,7 @@ export default function SplashScreen({ navigation }) {
         } else {
           navigation.replace("Login");
         }
-      }, 2000); // ⏱️ 2 detik pasti muncul
+      }, 2000);
     };
 
     startApp();

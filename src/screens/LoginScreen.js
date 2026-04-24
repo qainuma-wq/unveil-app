@@ -27,7 +27,7 @@ export default function LoginScreen({ navigation }) {
       const snap = await getDoc(ref);
 
       if (!snap.exists()) {
-        await AsyncStorage.removeItem("user"); // 🔥 penting
+        await AsyncStorage.removeItem("user"); 
         alert("User not found");
         return;
       }
@@ -35,7 +35,7 @@ export default function LoginScreen({ navigation }) {
       const data = snap.data();
 
       if (data.password !== password) {
-        await AsyncStorage.removeItem("user"); // 🔥 penting
+        await AsyncStorage.removeItem("user");
         alert("Wrong password");
         return;
       }
@@ -81,7 +81,6 @@ export default function LoginScreen({ navigation }) {
           <Text style={styles.buttonText}>Login</Text>
         </TouchableOpacity>
 
-        {/* 🔥 BALIKIN OPTION */}
         <TouchableOpacity onPress={() => navigation.navigate("Register")}>
           <Text style={styles.link}>Don’t have an account?</Text>
         </TouchableOpacity>

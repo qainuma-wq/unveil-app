@@ -41,7 +41,7 @@ export default function AvatarScreen({ route, navigation }) {
       <Text style={styles.title}>Choose your identity</Text>
 
       <Text style={styles.note}>
-        Pick your one in a lifetime profile picture
+        Pick your ONCE in a lifetime profile picture!
       </Text>
 
       <View style={styles.container}>

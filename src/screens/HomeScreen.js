@@ -91,7 +91,6 @@ export default function HomeScreen({ route, navigation }) {
     setTweet("");
     setIsFocused(false);
 
-    // 🔥 FIX UTAMA: reset warna setelah post
     setSelectedColor("#FFB6C1");
   };
 

@@ -14,8 +14,7 @@ export default function SplashScreen({ navigation }) {
             params: { username: user }, // ✅ FIX DI SINI
           });
         } else {
-          navigation.replace("Auth"); // 🔥 kalau pakai AuthStack
-        }
+            navigation.replace("Login")        }
       }, 2000);
     };
 

@@ -47,10 +47,7 @@ export default function LoginScreen({ navigation }) {
       if (data.avatar === null) {
         navigation.replace("Avatar", { username: cleanUsername });
       } else {
-        navigation.replace("App", {
-          screen: "Home",
-          params: { username: cleanUsername },
-        });
+        navigation.replace("Home", { username: cleanUsername }); // ✅ FIX
       }
 
     } catch (e) {
@@ -74,7 +71,7 @@ export default function LoginScreen({ navigation }) {
           onChangeText={setUsername}
         />
 
-        {/* PASSWORD INPUT */}
+        {/* PASSWORD */}
         <View style={styles.passwordContainer}>
           <TextInput
             placeholder="Password"
@@ -157,7 +154,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     marginBottom: 15,
   },
-
   passwordInput: {
     flex: 1,
     paddingVertical: 12,

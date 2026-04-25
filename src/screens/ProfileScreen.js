@@ -1,12 +1,19 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useEffect, useState, useCallback } from "react";
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  BackHandler
+} from "react-native";
+
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
+
 import { db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
-import { BackHandler } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
-import { useCallback } from "react";
 
 const avatars = [
   require("../../assets/avatars/1.png"),
@@ -24,41 +31,54 @@ export default function ProfileScreen({ route, navigation }) {
   const { username } = route.params;
   const [data, setData] = useState(null);
 
+  // 🔥 ambil data user
   useEffect(() => {
     const fetch = async () => {
       const snap = await getDoc(doc(db, "users", username));
       if (snap.exists()) setData(snap.data());
     };
     fetch();
-  }, []);
+  }, [username]);
 
+  // 🔥 BACK BUTTON HP → balik ke Home
   useFocusEffect(
-  useCallback(() => {
-    const onBackPress = () => {
-      navigation.navigate("Home", { username });
-      return true;
-    };
+    useCallback(() => {
+      const onBackPress = () => {
+        navigation.navigate("Home", { username });
+        return true;
+      };
 
-    BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress
+      );
 
-    return () =>
-      BackHandler.removeEventListener("hardwareBackPress", onBackPress);
-  }, [])
-);
+      return () => subscription.remove(); // ✅ NO ERROR
+    }, [username])
+  );
 
+  // 🔥 LOGOUT FIX (INI YANG PENTING)
   const logout = async () => {
     await AsyncStorage.removeItem("user");
-    navigation.replace("Login");
+
+    // 👇 ambil navigator atas (yang punya Login)
+    const parent = navigation.getParent();
+
+    if (parent) {
+      parent.navigate("Login"); // ✅ FIX error navigator
+    } else {
+      navigation.navigate("Login");
+    }
   };
 
   if (!data) return null;
 
   return (
     <View style={styles.container}>
-      
+
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => navigation.navigate("Home", { username })}>
           <Ionicons name="arrow-back" size={24} />
         </TouchableOpacity>
 
@@ -116,13 +136,6 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 20,
     marginTop: 10,
-  },
-
-  note: {
-    marginTop: 10,
-    color: "#555",
-    textAlign: "center",
-    paddingHorizontal: 40,
   },
 
   button: {

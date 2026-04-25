@@ -24,6 +24,8 @@ import {
   getDoc,
 } from "firebase/firestore";
 
+import { deleteDoc } from "firebase/firestore";
+
 export default function HomeScreen({ route, navigation }) {
   const { username } = route.params;
 
@@ -31,10 +33,7 @@ export default function HomeScreen({ route, navigation }) {
   const [tweet, setTweet] = useState("");
   const [tweets, setTweets] = useState([]);
   const [userAvatar, setUserAvatar] = useState(0);
-  const [selectedColor, setSelectedColor] = useState("#FFB6C1");
-  const [isFocused, setIsFocused] = useState(false);
-
-  const colors = ["#FFB6C1", "#C1F0C1", "#C1E1FF", "#FFF3B0"];
+  const [userColor, setUserColor] = useState(null);
 
   const avatars = [
     require("../../assets/avatars/1.png"),
@@ -48,16 +47,32 @@ export default function HomeScreen({ route, navigation }) {
     require("../../assets/avatars/9.png"),
   ];
 
+  const handleDelete = async (id) => {
+  await deleteDoc(doc(db, "tweets", id));
+};
+
+  // 🔥 CEK USER (avatar + warna wajib ada)
   useEffect(() => {
     const fetchUser = async () => {
       const snap = await getDoc(doc(db, "users", username));
+
       if (snap.exists()) {
-        setUserAvatar(snap.data().avatar || 0);
+        const data = snap.data();
+
+        if (data.avatar === null || data.personalColor === null) {
+          navigation.replace("Avatar", { username });
+          return;
+        }
+
+        setUserAvatar(data.avatar || 0);
+        setUserColor(data.personalColor || "#FFB6C1");
       }
     };
+
     fetchUser();
   }, []);
 
+  // 🔥 REALTIME TWEETS
   useEffect(() => {
     const q = query(collection(db, "tweets"), orderBy("createdAt", "desc"));
 
@@ -72,14 +87,15 @@ export default function HomeScreen({ route, navigation }) {
     return unsubscribe;
   }, []);
 
+  // 🔥 POST
   const postTweet = async () => {
-    if (!tweet.trim()) return;
+    if (!tweet.trim() || !userColor) return;
 
     await addDoc(collection(db, "tweets"), {
       user: username,
       text: tweet,
       avatar: userAvatar,
-      color: selectedColor,
+      color: userColor, // 🔥 sekarang pasti bener
       likes: 0,
       likedBy: [],
       parentId: null,
@@ -87,10 +103,9 @@ export default function HomeScreen({ route, navigation }) {
     });
 
     setTweet("");
-    setSelectedColor("#FFB6C1");
-    setIsFocused(false);
   };
 
+  // 🔥 LIKE TOGGLE
   const handleLike = async (item) => {
     const ref = doc(db, "tweets", item.id);
     const liked = item.likedBy?.includes(username);
@@ -130,13 +145,22 @@ export default function HomeScreen({ route, navigation }) {
           <Image source={avatars[item.avatar || 0]} style={styles.avatar} />
 
           <View style={{ flex: 1 }}>
-            <Text style={styles.username}>{item.user}</Text>
+            <View style={styles.topRow}>
+              <Text style={styles.username}>{item.user}</Text>
 
-            {/* 🔥 TEXT FIX (wrap ke bawah) */}
+              {item.user === username && (
+                <TouchableOpacity onPress={() => handleDelete(item.id)}>
+                  <Ionicons name="trash-outline" size={18} color="black" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* ✅ TEXT AUTO WRAP */}
             <Text style={styles.tweetText}>{item.text}</Text>
 
             <View style={styles.actionRow}>
-              
+
+              {/* LEFT */}
               {replyCount > 0 && (
                 <TouchableOpacity
                   onPress={() =>
@@ -149,6 +173,7 @@ export default function HomeScreen({ route, navigation }) {
                 </TouchableOpacity>
               )}
 
+              {/* RIGHT */}
               <View style={styles.rightActions}>
                 <TouchableOpacity
                   style={styles.iconBtn}
@@ -178,9 +203,10 @@ export default function HomeScreen({ route, navigation }) {
     );
   };
 
+
   return (
     <View style={styles.container}>
-      
+
       {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.title}>Unveil</Text>
@@ -206,6 +232,7 @@ export default function HomeScreen({ route, navigation }) {
         </TouchableOpacity>
       </View>
 
+      {/* LIST */}
       <FlatList
         data={
           tab === "unfolding"
@@ -219,24 +246,6 @@ export default function HomeScreen({ route, navigation }) {
 
       {/* INPUT AREA */}
       <View style={styles.bottomArea}>
-        
-        {isFocused && (
-          <View style={styles.colorWrapper}>
-            <View style={styles.colorRow}>
-              {colors.map((c, i) => (
-                <TouchableOpacity
-                  key={i}
-                  onPress={() => setSelectedColor(c)}
-                  style={[
-                    styles.colorDot,
-                    { backgroundColor: c },
-                    selectedColor === c && styles.selectedDot,
-                  ]}
-                />
-              ))}
-            </View>
-          </View>
-        )}
 
         {/* INPUT */}
         <View style={styles.inputContainer}>
@@ -244,13 +253,18 @@ export default function HomeScreen({ route, navigation }) {
             placeholder="Unveil your thoughts..."
             value={tweet}
             onChangeText={setTweet}
-            onFocus={() => setIsFocused(true)}
-            multiline={true} 
+            multiline={true}
             textAlignVertical="top"
-            style={[styles.input, { backgroundColor: selectedColor }]}
+            style={[
+              styles.input,
+            ]}
           />
 
-          <TouchableOpacity style={styles.postBtn} onPress={postTweet}>
+          <TouchableOpacity
+            style={styles.postBtn}
+            onPress={postTweet}
+            disabled={!userColor}
+          >
             <Text style={styles.postText}>Send</Text>
           </TouchableOpacity>
         </View>
@@ -260,7 +274,11 @@ export default function HomeScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#E9E3D5", paddingTop: 60 },
+  container: {
+    flex: 1,
+    backgroundColor: "#E9E3D5",
+    paddingTop: 60,
+  },
 
   header: {
     flexDirection: "row",
@@ -269,7 +287,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
-  title: { fontSize: 26, fontWeight: "bold" },
+  title: {
+    fontSize: 26,
+    fontWeight: "bold",
+  },
 
   tabs: {
     flexDirection: "row",
@@ -278,11 +299,19 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
 
-  tabText: { fontSize: 18, color: "#1D6F6B" },
+  tabText: {
+    fontSize: 18,
+    color: "#1D6F6B",
+  },
 
-  active: { fontWeight: "bold" },
+  active: {
+    fontWeight: "bold",
+  },
 
-  wrapper: { width: "100%", alignItems: "center" },
+  wrapper: {
+    width: "100%",
+    alignItems: "center",
+  },
 
   tweetBox: {
     flexDirection: "row",
@@ -292,9 +321,18 @@ const styles = StyleSheet.create({
     width: "90%",
   },
 
-  avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 10 },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
 
-  username: { fontWeight: "bold", marginBottom: 3, fontSize: 16 },
+  username: {
+    fontWeight: "bold",
+    marginBottom: 3,
+    fontSize: 16,
+  },
 
   tweetText: {
     flexWrap: "wrap",
@@ -308,38 +346,31 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  rightActions: { flexDirection: "row", gap: 15 },
-
-  iconBtn: { flexDirection: "row", alignItems: "center" },
-
-  count: { marginLeft: 5 },
-
-  replyText: { color: "#555" },
-
-  bottomArea: { paddingBottom: 20 },
-
-  colorWrapper: {
-    marginBottom: 10,
-  },
-
-  colorRow: {
+  rightActions: {
     flexDirection: "row",
-    justifyContent: "center",
+    gap: 15,
   },
 
-  colorDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    marginHorizontal: 6,
+  iconBtn: {
+    flexDirection: "row",
+    alignItems: "center",
   },
 
-  selectedDot: { borderWidth: 2, borderColor: "#000" },
+  count: {
+    marginLeft: 5,
+  },
+
+  replyText: {
+    color: "#555",
+  },
 
   inputContainer: {
     flexDirection: "row",
     paddingHorizontal: 20,
+    paddingBottom: 20,
     alignItems: "flex-end",
+    paddingTop: 20,
+    boxShadow: '0 4px 7px rgba(0, 0, 0, 0.5)'
   },
 
   input: {
@@ -348,6 +379,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     minHeight: 45,
     maxHeight: 120,
+    backgroundColor: "#8DB0CB",
   },
 
   postBtn: {
@@ -358,5 +390,14 @@ const styles = StyleSheet.create({
     borderRadius: 15,
   },
 
-  postText: { color: "white", fontWeight: "bold" },
+  postText: {
+    color: "white",
+    fontWeight: "bold",
+  },
+
+  topRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
 });

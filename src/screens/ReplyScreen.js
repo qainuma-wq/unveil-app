@@ -18,6 +18,9 @@ import {
   query,
   orderBy,
   serverTimestamp,
+  doc,
+  getDoc,
+  deleteDoc,
 } from "firebase/firestore";
 
 export default function ReplyScreen({ route, navigation }) {
@@ -25,11 +28,24 @@ export default function ReplyScreen({ route, navigation }) {
 
   const [reply, setReply] = useState("");
   const [replies, setReplies] = useState([]);
-  const [selectedColor, setSelectedColor] = useState("#8EB1CC");
-  const [showColors, setShowColors] = useState(false);
+  const [userColor, setUserColor] = useState("#8DB0CB");
 
-  const colors = ["#FFC0CB", "#C1E1C1", "#ADD8E6", "#FFFACD"];
+  // ambil warna user (tetep ada, tapi gak dipake di input sekarang)
+  useEffect(() => {
+    const fetchUser = async () => {
+      const snap = await getDoc(doc(db, "users", username));
+      if (snap.exists()) {
+        setUserColor(snap.data().themeColor || "#8DB0CB");
+      }
+    };
+    fetchUser();
+  }, []);
 
+  const handleDelete = async (id) => {
+    await deleteDoc(doc(db, "tweets", id));
+  };
+
+  // realtime replies
   useEffect(() => {
     const q = query(collection(db, "tweets"), orderBy("createdAt", "asc"));
 
@@ -44,13 +60,14 @@ export default function ReplyScreen({ route, navigation }) {
     return unsubscribe;
   }, []);
 
+  // send reply
   const sendReply = async () => {
     if (!reply.trim()) return;
 
     await addDoc(collection(db, "tweets"), {
       user: username,
       text: reply,
-      color: selectedColor,
+      color: userColor,
       createdAt: serverTimestamp(),
       likes: 0,
       likedBy: [],
@@ -58,8 +75,6 @@ export default function ReplyScreen({ route, navigation }) {
     });
 
     setReply("");
-    setSelectedColor("#8EB1CC");
-    setShowColors(false);
   };
 
   const getUsernameStyle = (name) => {
@@ -70,16 +85,26 @@ export default function ReplyScreen({ route, navigation }) {
 
   const renderReply = ({ item }) => (
     <View style={[styles.replyBox, { backgroundColor: item.color }]}>
-      
-      {/* USERNAME + REPLIED */}
       <View style={styles.row}>
         <Text style={getUsernameStyle(item.user)}>
           {item.user}
         </Text>
-        <Text style={styles.replied}>  replied</Text>
+
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <Text style={styles.replied}> replied</Text>
+
+          {item.user === username && (
+            <TouchableOpacity
+              onPress={() => handleDelete(item.id)}
+              style={{ marginLeft: 8 }}
+            >
+              <Ionicons name="trash-outline" size={16} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
-      <Text>{item.text}</Text>
+      <Text style={styles.text}>{item.text}</Text>
     </View>
   );
 
@@ -100,46 +125,33 @@ export default function ReplyScreen({ route, navigation }) {
       {/* ORIGINAL TWEET */}
       <View style={[styles.tweetBox, { backgroundColor: tweet.color }]}>
         <Text style={styles.username}>{tweet.user}</Text>
-        <Text>{tweet.text}</Text>
+        <Text style={styles.text}>{tweet.text}</Text>
       </View>
 
-      {/* LIST */}
+      {/* REPLIES */}
       <FlatList
         data={replies}
         renderItem={renderReply}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: 140 }}
       />
 
-      {/* COLOR PICKER */}
-      {showColors && (
-        <View style={styles.colors}>
-          {colors.map((c) => (
-            <TouchableOpacity
-              key={c}
-              onPress={() => {
-                setSelectedColor(c);
-                setShowColors(false);
-              }}
-              style={[styles.colorCircle, { backgroundColor: c }]}
-            />
-          ))}
-        </View>
-      )}
-
       {/* INPUT */}
-      <View style={styles.inputContainer}>
-        <TextInput
-          placeholder="Unveil your voice..."
-          value={reply}
-          onFocus={() => setShowColors(true)}
-          onChangeText={setReply}
-          style={[styles.input, { backgroundColor: selectedColor }]}
-        />
+      <View style={styles.inputWrapper}>
+        <View style={styles.inputContainer}>
+          <TextInput
+            placeholder="Unveil your side..."
+            value={reply}
+            onChangeText={setReply}
+            multiline
+            textAlignVertical="top"
+            style={styles.input} // 🔥 FIXED COLOR (no userColor lagi)
+          />
 
-        <TouchableOpacity style={styles.postBtn} onPress={sendReply}>
-          <Text style={styles.postText}>Send</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.postBtn} onPress={sendReply}>
+            <Text style={styles.postText}>Send</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
     </View>
@@ -155,7 +167,6 @@ const styles = StyleSheet.create({
 
   header: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
     marginBottom: 10,
@@ -193,43 +204,45 @@ const styles = StyleSheet.create({
 
   usernameMedium: {
     fontWeight: "bold",
-    fontSize: 12,
+    fontSize: 14,
   },
 
   usernameSmall: {
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: 12,
   },
 
   replied: {
-    fontSize: 15,
-    color: "#666262",
+    fontSize: 13,
+    color: "#666",
+    marginLeft: 4,
   },
 
-  colors: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 10,
+  text: {
+    flexWrap: "wrap",
+    lineHeight: 20,
   },
 
-  colorCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    marginHorizontal: 6,
+  inputWrapper: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 20,
+    backgroundColor: "#E9E3D5",
+    boxShadow: '0 4px 7px rgba(0, 0, 0, 0.5)'
   },
 
   inputContainer: {
     flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    marginBottom: 20,
+    alignItems: "flex-end",
   },
 
   input: {
     flex: 1,
     padding: 12,
-    borderRadius: 18,
+    borderRadius: 20,
+    minHeight: 45,
+    maxHeight: 120,
+    backgroundColor: "#8DB0CB", // 🔥 INI YANG DIGANTI
   },
 
   postBtn: {

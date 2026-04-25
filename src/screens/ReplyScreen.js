@@ -30,12 +30,11 @@ export default function ReplyScreen({ route, navigation }) {
   const [replies, setReplies] = useState([]);
   const [userColor, setUserColor] = useState("#8DB0CB");
 
-  // ambil warna user (tetep ada, tapi gak dipake di input sekarang)
   useEffect(() => {
     const fetchUser = async () => {
       const snap = await getDoc(doc(db, "users", username));
       if (snap.exists()) {
-        setUserColor(snap.data().themeColor || "#8DB0CB");
+        setUserColor(snap.data().personalColor || "#8DB0CB");
       }
     };
     fetchUser();

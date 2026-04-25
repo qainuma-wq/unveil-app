@@ -6,6 +6,8 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
+  Keyboard,
+  Alert
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -17,10 +19,10 @@ import {
   onSnapshot,
   query,
   orderBy,
-  serverTimestamp,
   doc,
   getDoc,
   deleteDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 
 export default function ReplyScreen({ route, navigation }) {
@@ -29,7 +31,9 @@ export default function ReplyScreen({ route, navigation }) {
   const [reply, setReply] = useState("");
   const [replies, setReplies] = useState([]);
   const [userColor, setUserColor] = useState("#8DB0CB");
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
+  // 🔥 ambil warna user
   useEffect(() => {
     const fetchUser = async () => {
       const snap = await getDoc(doc(db, "users", username));
@@ -40,26 +44,38 @@ export default function ReplyScreen({ route, navigation }) {
     fetchUser();
   }, []);
 
-  const handleDelete = async (id) => {
-    await deleteDoc(doc(db, "tweets", id));
-  };
+  // 🔥 keyboard listener
+  useEffect(() => {
+    const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
 
-  // realtime replies
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  // 🔥 realtime replies
   useEffect(() => {
     const q = query(collection(db, "tweets"), orderBy("createdAt", "asc"));
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsub = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs
-        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .map((d) => ({ id: d.id, ...d.data() }))
         .filter((t) => t.parentId === tweet.id);
 
       setReplies(data);
     });
 
-    return unsubscribe;
+    return unsub;
   }, []);
 
-  // send reply
+  // 🔥 kirim reply
   const sendReply = async () => {
     if (!reply.trim()) return;
 
@@ -67,49 +83,49 @@ export default function ReplyScreen({ route, navigation }) {
       user: username,
       text: reply,
       color: userColor,
-      createdAt: serverTimestamp(),
+      parentId: tweet.id,
       likes: 0,
       likedBy: [],
-      parentId: tweet.id,
+      createdAt: serverTimestamp(),
     });
 
     setReply("");
   };
 
-  const getUsernameStyle = (name) => {
-    if (name.length > 15) return styles.usernameSmall;
-    if (name.length > 10) return styles.usernameMedium;
-    return styles.username;
+  // 🔥 DELETE
+  const handleDelete = async (id) => {
+    Alert.alert("Delete", "Sure want to delete your thought?", [
+      { text: "Cancel" },
+      {
+        text: "Yes",
+        onPress: async () => {
+          await deleteDoc(doc(db, "tweets", id));
+        },
+      },
+    ]);
   };
 
+  // 🔥 render reply
   const renderReply = ({ item }) => (
     <View style={[styles.replyBox, { backgroundColor: item.color }]}>
-      <View style={styles.row}>
-        <Text style={getUsernameStyle(item.user)}>
-          {item.user}
-        </Text>
+      
+      <View style={styles.topRow}>
+        <Text style={styles.username}>{item.user}</Text>
 
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Text style={styles.replied}> replied</Text>
-
-          {item.user === username && (
-            <TouchableOpacity
-              onPress={() => handleDelete(item.id)}
-              style={{ marginLeft: 8 }}
-            >
-              <Ionicons name="trash-outline" size={16} />
-            </TouchableOpacity>
-          )}
-        </View>
+        {item.user === username && (
+          <TouchableOpacity onPress={() => handleDelete(item.id)}>
+            <Ionicons name="trash-outline" size={18} color="black" />
+          </TouchableOpacity>
+        )}
       </View>
 
-      <Text style={styles.text}>{item.text}</Text>
+      <Text>{item.text}</Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      
+
       {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -124,10 +140,10 @@ export default function ReplyScreen({ route, navigation }) {
       {/* ORIGINAL TWEET */}
       <View style={[styles.tweetBox, { backgroundColor: tweet.color }]}>
         <Text style={styles.username}>{tweet.user}</Text>
-        <Text style={styles.text}>{tweet.text}</Text>
+        <Text>{tweet.text}</Text>
       </View>
 
-      {/* REPLIES */}
+      {/* LIST */}
       <FlatList
         data={replies}
         renderItem={renderReply}
@@ -136,15 +152,20 @@ export default function ReplyScreen({ route, navigation }) {
       />
 
       {/* INPUT */}
-      <View style={styles.inputWrapper}>
+      <View
+        style={[
+          styles.inputWrapper,
+          { bottom: keyboardHeight }
+        ]}
+      >
         <View style={styles.inputContainer}>
           <TextInput
-            placeholder="Unveil your side..."
+            placeholder="Unveil your thoughts..."
             value={reply}
             onChangeText={setReply}
             multiline
             textAlignVertical="top"
-            style={styles.input} // 🔥 FIXED COLOR (no userColor lagi)
+            style={styles.input}
           />
 
           <TouchableOpacity style={styles.postBtn} onPress={sendReply}>
@@ -190,48 +211,30 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
+  username: {
+    fontWeight: "bold",
     marginBottom: 4,
   },
 
-  username: {
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-
-  usernameMedium: {
-    fontWeight: "bold",
-    fontSize: 14,
-  },
-
-  usernameSmall: {
-    fontWeight: "bold",
-    fontSize: 12,
-  },
-
-  replied: {
-    fontSize: 13,
-    color: "#666",
-    marginLeft: 4,
-  },
-
-  text: {
-    flexWrap: "wrap",
-    lineHeight: 20,
+  topRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
 
   inputWrapper: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 20,
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "#E9E3D5",
-    boxShadow: '0 4px 7px rgba(0, 0, 0, 0.5)'
   },
 
   inputContainer: {
     flexDirection: "row",
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    paddingTop: 20,
     alignItems: "flex-end",
   },
 
@@ -239,9 +242,9 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 12,
     borderRadius: 20,
-    minHeight: 45,
+    minHeight: 40,
     maxHeight: 120,
-    backgroundColor: "#8DB0CB", // 🔥 INI YANG DIGANTI
+    backgroundColor: "#8DB0CB",
   },
 
   postBtn: {

@@ -6,12 +6,14 @@ import {
   Text,
   StyleSheet,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { db } from "../firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 
 export default function RegisterScreen({ navigation }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleRegister = async () => {
     if (!username.trim() || !password.trim()) {
@@ -50,13 +52,24 @@ export default function RegisterScreen({ navigation }) {
           onChangeText={setUsername}
         />
 
-        <TextInput
-          placeholder="Password"
-          secureTextEntry
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-        />
+        {/* PASSWORD INPUT */}
+        <View style={styles.passwordContainer}>
+          <TextInput
+            placeholder="Password"
+            secureTextEntry={!showPassword}
+            style={styles.passwordInput}
+            value={password}
+            onChangeText={setPassword}
+          />
+
+          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+            <Ionicons
+              name={showPassword ? "eye-off" : "eye"}
+              size={22}
+              color="#555"
+            />
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity style={styles.button} onPress={handleRegister}>
           <Text style={styles.buttonText}>Register</Text>
@@ -107,5 +120,17 @@ const styles = StyleSheet.create({
     marginTop: 15,
     textAlign: "center",
     color: "#1D6F6B",
+  },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F2F2F2",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 15,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 12,
   },
 });

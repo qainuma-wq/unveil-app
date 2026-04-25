@@ -7,6 +7,7 @@ import {
   TextInput,
   FlatList,
   Image,
+  Keyboard
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -22,9 +23,8 @@ import {
   updateDoc,
   increment,
   getDoc,
+  deleteDoc,
 } from "firebase/firestore";
-
-import { deleteDoc } from "firebase/firestore";
 
 export default function HomeScreen({ route, navigation }) {
   const { username } = route.params;
@@ -48,10 +48,11 @@ export default function HomeScreen({ route, navigation }) {
   ];
 
   const handleDelete = async (id) => {
-  await deleteDoc(doc(db, "tweets", id));
-};
+    await deleteDoc(doc(db, "tweets", id));
+  };
 
-  // 🔥 CEK USER (avatar + warna wajib ada)
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
   useEffect(() => {
     const fetchUser = async () => {
       const snap = await getDoc(doc(db, "users", username));
@@ -72,7 +73,21 @@ export default function HomeScreen({ route, navigation }) {
     fetchUser();
   }, []);
 
-  // 🔥 REALTIME TWEETS
+  useEffect(() => {
+    const showSub = Keyboard.addListener("keyboardDidShow", (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+
+    const hideSub = Keyboard.addListener("keyboardDidHide", () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
   useEffect(() => {
     const q = query(collection(db, "tweets"), orderBy("createdAt", "desc"));
 
@@ -87,7 +102,6 @@ export default function HomeScreen({ route, navigation }) {
     return unsubscribe;
   }, []);
 
-  // 🔥 POST
   const postTweet = async () => {
     if (!tweet.trim() || !userColor) return;
 
@@ -95,7 +109,7 @@ export default function HomeScreen({ route, navigation }) {
       user: username,
       text: tweet,
       avatar: userAvatar,
-      color: userColor, // 🔥 sekarang pasti bener
+      color: userColor,
       likes: 0,
       likedBy: [],
       parentId: null,
@@ -105,7 +119,6 @@ export default function HomeScreen({ route, navigation }) {
     setTweet("");
   };
 
-  // 🔥 LIKE TOGGLE
   const handleLike = async (item) => {
     const ref = doc(db, "tweets", item.id);
     const liked = item.likedBy?.includes(username);
@@ -136,15 +149,11 @@ export default function HomeScreen({ route, navigation }) {
 
     return (
       <View style={styles.wrapper}>
-        <View
-          style={[
-            styles.tweetBox,
-            { backgroundColor: item.color || "#8EB1CC" },
-          ]}
-        >
+        <View style={[styles.tweetBox, { backgroundColor: item.color || "#8EB1CC" }]}>
           <Image source={avatars[item.avatar || 0]} style={styles.avatar} />
 
           <View style={{ flex: 1 }}>
+
             <View style={styles.topRow}>
               <Text style={styles.username}>{item.user}</Text>
 
@@ -155,26 +164,22 @@ export default function HomeScreen({ route, navigation }) {
               )}
             </View>
 
-            {/* ✅ TEXT AUTO WRAP */}
             <Text style={styles.tweetText}>{item.text}</Text>
 
             <View style={styles.actionRow}>
 
-              {/* LEFT */}
-              {replyCount > 0 && (
-                <TouchableOpacity
-                  onPress={() =>
-                    navigation.navigate("Reply", { tweet: item, username })
-                  }
-                >
-                  <Text style={styles.replyText}>
-                    See Replies ({replyCount})
-                  </Text>
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate("Reply", { tweet: item, username })
+                }
+              >
+                <Text style={styles.replyText}>
+                  See Replies ({replyCount})
+                </Text>
+              </TouchableOpacity>
 
-              {/* RIGHT */}
               <View style={styles.rightActions}>
+
                 <TouchableOpacity
                   style={styles.iconBtn}
                   onPress={() => handleLike(item)}
@@ -195,29 +200,26 @@ export default function HomeScreen({ route, navigation }) {
                 >
                   <Ionicons name="chatbubble-outline" size={20} />
                 </TouchableOpacity>
+
               </View>
             </View>
+
           </View>
         </View>
       </View>
     );
   };
 
-
   return (
     <View style={styles.container}>
 
-      {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.title}>Unveil</Text>
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Profile", { username })}
-        >
+        <TouchableOpacity onPress={() => navigation.navigate("Profile", { username })}>
           <Ionicons name="person-outline" size={24} />
         </TouchableOpacity>
       </View>
 
-      {/* TABS */}
       <View style={styles.tabs}>
         <TouchableOpacity onPress={() => setTab("unfolding")}>
           <Text style={[styles.tabText, tab === "unfolding" && styles.active]}>
@@ -232,7 +234,6 @@ export default function HomeScreen({ route, navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* LIST */}
       <FlatList
         data={
           tab === "unfolding"
@@ -243,28 +244,23 @@ export default function HomeScreen({ route, navigation }) {
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 140 }}
       />
-
-      {/* INPUT AREA */}
-      <View style={styles.bottomArea}>
-
-        {/* INPUT */}
+      <View
+        style={[
+          styles.inputWrapper,
+          { bottom: keyboardHeight } // 🔥 INI KUNCINYA
+        ]}
+      >
         <View style={styles.inputContainer}>
           <TextInput
             placeholder="Unveil your thoughts..."
             value={tweet}
             onChangeText={setTweet}
-            multiline={true}
+            multiline
             textAlignVertical="top"
-            style={[
-              styles.input,
-            ]}
+            style={styles.input}
           />
 
-          <TouchableOpacity
-            style={styles.postBtn}
-            onPress={postTweet}
-            disabled={!userColor}
-          >
+          <TouchableOpacity style={styles.postBtn} onPress={postTweet}>
             <Text style={styles.postText}>Send</Text>
           </TouchableOpacity>
         </View>
@@ -367,7 +363,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 40,
     alignItems: "flex-end",
     paddingTop: 20,
     boxShadow: '0 4px 7px rgba(0, 0, 0, 0.5)'
@@ -377,7 +373,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 12,
     borderRadius: 20,
-    minHeight: 45,
+    minHeight: 15,
     maxHeight: 120,
     backgroundColor: "#8DB0CB",
   },
@@ -400,4 +396,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+
+  inputWrapper: {
+  position: "absolute",
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: "#E9E3D5",
+},
 });

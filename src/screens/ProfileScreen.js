@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
@@ -37,17 +38,29 @@ export default function ProfileScreen({ route, navigation }) {
 
   return (
     <View style={styles.container}>
-      <Image source={avatars[data.avatar]} style={styles.avatar} />
+      
+      {/* HEADER */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} />
+        </TouchableOpacity>
 
-      <Text style={styles.username}>{data.username}</Text>
+        <Text style={styles.title}>Profile</Text>
 
-      <TouchableOpacity style={styles.button} onPress={logout}>
-        <Text style={styles.buttonText}>Logout</Text>
-      </TouchableOpacity>
+        <View style={{ width: 24 }} />
+      </View>
 
-      <TouchableOpacity onPress={() => navigation.goBack()}>
-        <Text style={styles.back}>Back</Text>
-      </TouchableOpacity>
+      {/* CONTENT */}
+      <View style={styles.content}>
+        <Image source={avatars[data.avatar]} style={styles.avatar} />
+
+        <Text style={styles.username}>{data.username}</Text>
+
+        <TouchableOpacity style={styles.button} onPress={logout}>
+          <Text style={styles.buttonText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
+
     </View>
   );
 }
@@ -55,32 +68,54 @@ export default function ProfileScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#E9E3D5",
+    paddingTop: 60,
+  },
+
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+  },
+
+  title: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+
+  content: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
+
   avatar: {
     width: 120,
     height: 120,
     borderRadius: 60,
   },
+
   username: {
     fontSize: 20,
     marginTop: 10,
   },
+
   note: {
     marginTop: 10,
     color: "#555",
+    textAlign: "center",
+    paddingHorizontal: 40,
   },
+
   button: {
     backgroundColor: "#E5C66A",
     padding: 15,
     marginTop: 20,
     borderRadius: 10,
   },
+
   buttonText: {
     fontWeight: "bold",
-  },
-  back: {
-    marginTop: 15,
   },
 });

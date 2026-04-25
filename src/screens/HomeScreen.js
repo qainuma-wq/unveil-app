@@ -50,14 +50,11 @@ export default function HomeScreen({ route, navigation }) {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const ref = doc(db, "users", username);
-      const snap = await getDoc(ref);
-
+      const snap = await getDoc(doc(db, "users", username));
       if (snap.exists()) {
         setUserAvatar(snap.data().avatar || 0);
       }
     };
-
     fetchUser();
   }, []);
 
@@ -76,7 +73,7 @@ export default function HomeScreen({ route, navigation }) {
   }, []);
 
   const postTweet = async () => {
-    if (tweet.trim() === "") return;
+    if (!tweet.trim()) return;
 
     await addDoc(collection(db, "tweets"), {
       user: username,
@@ -85,21 +82,20 @@ export default function HomeScreen({ route, navigation }) {
       color: selectedColor,
       likes: 0,
       likedBy: [],
+      parentId: null,
       createdAt: new Date(),
     });
 
     setTweet("");
-    setIsFocused(false);
-
     setSelectedColor("#FFB6C1");
+    setIsFocused(false);
   };
 
   const handleLike = async (item) => {
     const ref = doc(db, "tweets", item.id);
+    const liked = item.likedBy?.includes(username);
 
-    const alreadyLiked = item.likedBy?.includes(username);
-
-    if (alreadyLiked) {
+    if (liked) {
       await updateDoc(ref, {
         likes: increment(-1),
         likedBy: item.likedBy.filter((u) => u !== username),
@@ -112,33 +108,71 @@ export default function HomeScreen({ route, navigation }) {
     }
   };
 
+  const getReplyCount = (id) =>
+    tweets.filter((t) => t.parentId === id).length;
+
+  const mainTweets = tweets.filter(
+    (t) => t.parentId === null || t.parentId === undefined
+  );
+
   const renderTweet = ({ item }) => {
     const isLiked = item.likedBy?.includes(username);
+    const replyCount = getReplyCount(item.id);
 
     return (
-      <View
-        style={[
-          styles.tweetBox,
-          { backgroundColor: item.color || "#8EB1CC" },
-        ]}
-      >
-        <Image source={avatars[item.avatar || 0]} style={styles.avatar} />
+      <View style={styles.wrapper}>
+        <View
+          style={[
+            styles.tweetBox,
+            { backgroundColor: item.color || "#8EB1CC" },
+          ]}
+        >
+          <Image source={avatars[item.avatar || 0]} style={styles.avatar} />
 
-        <View style={{ flex: 1 }}>
-          <Text style={styles.username}>{item.user}</Text>
-          <Text>{item.text}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.username}>{item.user}</Text>
 
-          <TouchableOpacity
-            style={styles.likeBtn}
-            onPress={() => handleLike(item)}
-          >
-            <Ionicons
-              name={isLiked ? "heart" : "heart-outline"}
-              size={20}
-              color={isLiked ? "red" : "black"}
-            />
-            <Text style={{ marginLeft: 5 }}>{item.likes || 0}</Text>
-          </TouchableOpacity>
+            {/* 🔥 TEXT FIX (wrap ke bawah) */}
+            <Text style={styles.tweetText}>{item.text}</Text>
+
+            <View style={styles.actionRow}>
+              
+              {replyCount > 0 && (
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate("Reply", { tweet: item, username })
+                  }
+                >
+                  <Text style={styles.replyText}>
+                    See Replies ({replyCount})
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              <View style={styles.rightActions}>
+                <TouchableOpacity
+                  style={styles.iconBtn}
+                  onPress={() => handleLike(item)}
+                >
+                  <Ionicons
+                    name={isLiked ? "heart" : "heart-outline"}
+                    size={20}
+                    color={isLiked ? "red" : "black"}
+                  />
+                  <Text style={styles.count}>{item.likes || 0}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.iconBtn}
+                  onPress={() =>
+                    navigation.navigate("Reply", { tweet: item, username })
+                  }
+                >
+                  <Ionicons name="chatbubble-outline" size={20} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
         </View>
       </View>
     );
@@ -146,10 +180,10 @@ export default function HomeScreen({ route, navigation }) {
 
   return (
     <View style={styles.container}>
+      
       {/* HEADER */}
       <View style={styles.header}>
         <Text style={styles.title}>Unveil</Text>
-
         <TouchableOpacity
           onPress={() => navigation.navigate("Profile", { username })}
         >
@@ -172,34 +206,36 @@ export default function HomeScreen({ route, navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* LIST */}
       <FlatList
         data={
           tab === "unfolding"
-            ? tweets
-            : tweets.filter((t) => t.user === username)
+            ? mainTweets
+            : mainTweets.filter((t) => t.user === username)
         }
         renderItem={renderTweet}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: 140 }}
       />
 
       {/* INPUT AREA */}
       <View style={styles.bottomArea}>
-        {/* COLOR PICKER */}
+        
+        {/* 🔥 COLOR PICKER (dipisah, ga nyatu) */}
         {isFocused && (
-          <View style={styles.colorRow}>
-            {colors.map((c, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => setSelectedColor(c)}
-                style={[
-                  styles.colorDot,
-                  { backgroundColor: c },
-                  selectedColor === c && styles.selectedDot,
-                ]}
-              />
-            ))}
+          <View style={styles.colorWrapper}>
+            <View style={styles.colorRow}>
+              {colors.map((c, i) => (
+                <TouchableOpacity
+                  key={i}
+                  onPress={() => setSelectedColor(c)}
+                  style={[
+                    styles.colorDot,
+                    { backgroundColor: c },
+                    selectedColor === c && styles.selectedDot,
+                  ]}
+                />
+              ))}
+            </View>
           </View>
         )}
 
@@ -210,7 +246,8 @@ export default function HomeScreen({ route, navigation }) {
             value={tweet}
             onChangeText={setTweet}
             onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
+            multiline={true} 
+            textAlignVertical="top"
             style={[styles.input, { backgroundColor: selectedColor }]}
           />
 
@@ -224,11 +261,7 @@ export default function HomeScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#E9E3D5",
-    paddingTop: 60,
-  },
+  container: { flex: 1, backgroundColor: "#E9E3D5", paddingTop: 60 },
 
   header: {
     flexDirection: "row",
@@ -237,10 +270,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-  },
+  title: { fontSize: 26, fontWeight: "bold" },
 
   tabs: {
     flexDirection: "row",
@@ -249,15 +279,11 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
 
-  tabText: {
-    fontSize: 16,
-    color: "#1D6F6B",
-  },
+  tabText: { fontSize: 18, color: "#1D6F6B" },
 
-  active: {
-    fontWeight: "bold",
-    textDecorationLine: "underline",
-  },
+  active: { fontWeight: "bold" },
+
+  wrapper: { width: "100%", alignItems: "center" },
 
   tweetBox: {
     flexDirection: "row",
@@ -265,36 +291,41 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 15,
     width: "90%",
-    alignSelf: "center",
   },
 
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 10,
+  avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 10 },
+
+  username: { fontWeight: "bold", marginBottom: 3, fontSize: 16 },
+
+  tweetText: {
+    flexWrap: "wrap",
+    lineHeight: 20,
   },
 
-  username: {
-    fontWeight: "bold",
-    marginBottom: 3,
-  },
-
-  likeBtn: {
+  actionRow: {
     flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 10,
     alignItems: "center",
-    marginTop: 8,
-    alignSelf: "flex-end",
   },
 
-  bottomArea: {
-    paddingBottom: 20,
+  rightActions: { flexDirection: "row", gap: 15 },
+
+  iconBtn: { flexDirection: "row", alignItems: "center" },
+
+  count: { marginLeft: 5 },
+
+  replyText: { color: "#555" },
+
+  bottomArea: { paddingBottom: 20 },
+
+  colorWrapper: {
+    marginBottom: 10,
   },
 
   colorRow: {
     flexDirection: "row",
     justifyContent: "center",
-    marginBottom: 10,
   },
 
   colorDot: {
@@ -304,21 +335,20 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
   },
 
-  selectedDot: {
-    borderWidth: 2,
-    borderColor: "#000",
-  },
+  selectedDot: { borderWidth: 2, borderColor: "#000" },
 
   inputContainer: {
     flexDirection: "row",
     paddingHorizontal: 20,
-    alignItems: "center",
+    alignItems: "flex-end",
   },
 
   input: {
     flex: 1,
-    padding: 15,
+    padding: 12,
     borderRadius: 20,
+    minHeight: 45,
+    maxHeight: 120,
   },
 
   postBtn: {
@@ -329,8 +359,5 @@ const styles = StyleSheet.create({
     borderRadius: 15,
   },
 
-  postText: {
-    color: "white",
-    fontWeight: "bold",
-  },
+  postText: { color: "white", fontWeight: "bold" },
 });

@@ -9,9 +9,12 @@ export default function SplashScreen({ navigation }) {
 
       setTimeout(() => {
         if (user) {
-          navigation.replace("Home", { username: user });
+          navigation.replace("App", {
+            screen: "Home",
+            params: { username: user }, // ✅ FIX DI SINI
+          });
         } else {
-          navigation.replace("Login");
+          navigation.replace("Auth"); // 🔥 kalau pakai AuthStack
         }
       }, 2000);
     };

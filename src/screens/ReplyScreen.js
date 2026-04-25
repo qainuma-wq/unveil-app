@@ -11,6 +11,8 @@ import {
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback } from "react";
 
 import { db } from "../firebase";
 import {
@@ -24,6 +26,8 @@ import {
   deleteDoc,
   serverTimestamp,
 } from "firebase/firestore";
+
+import { BackHandler } from "react-native";
 
 export default function ReplyScreen({ route, navigation }) {
   const { tweet, username } = route.params;
@@ -43,6 +47,22 @@ export default function ReplyScreen({ route, navigation }) {
     };
     fetchUser();
   }, []);
+
+  useFocusEffect(
+  useCallback(() => {
+    const onBackPress = () => {
+      navigation.navigate("Home", { username });
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress
+    );
+
+    return () => subscription.remove(); // ✅ FIX
+  }, [username])
+);
 
   // 🔥 keyboard listener
   useEffect(() => {

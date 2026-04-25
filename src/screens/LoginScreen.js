@@ -47,7 +47,10 @@ export default function LoginScreen({ navigation }) {
       if (data.avatar === null) {
         navigation.replace("Avatar", { username: cleanUsername });
       } else {
-        navigation.replace("Home", { username: cleanUsername });
+        navigation.replace("App", {
+          screen: "Home",
+          params: { username: cleanUsername },
+        });
       }
 
     } catch (e) {
@@ -147,16 +150,16 @@ const styles = StyleSheet.create({
     color: "#1D6F6B",
   },
   passwordContainer: {
-  flexDirection: "row",
-  alignItems: "center",
-  backgroundColor: "#F2F2F2",
-  borderRadius: 8,
-  paddingHorizontal: 10,
-  marginBottom: 15,
-},
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F2F2F2",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginBottom: 15,
+  },
 
-passwordInput: {
-  flex: 1,
-  paddingVertical: 12,
-},
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 12,
+  },
 });

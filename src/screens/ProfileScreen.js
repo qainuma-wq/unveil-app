@@ -4,6 +4,9 @@ import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { BackHandler } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback } from "react";
 
 const avatars = [
   require("../../assets/avatars/1.png"),
@@ -28,6 +31,20 @@ export default function ProfileScreen({ route, navigation }) {
     };
     fetch();
   }, []);
+
+  useFocusEffect(
+  useCallback(() => {
+    const onBackPress = () => {
+      navigation.navigate("Home", { username });
+      return true;
+    };
+
+    BackHandler.addEventListener("hardwareBackPress", onBackPress);
+
+    return () =>
+      BackHandler.removeEventListener("hardwareBackPress", onBackPress);
+  }, [])
+);
 
   const logout = async () => {
     await AsyncStorage.removeItem("user");

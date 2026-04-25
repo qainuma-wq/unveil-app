@@ -60,7 +60,10 @@ export default function AvatarScreen({ route, navigation }) {
 
     await AsyncStorage.setItem("user", username);
 
-    navigation.replace("Home", { username });
+    navigation.replace("App", {
+      screen: "Home",
+      params: { username },
+    });
   };
 
   return (

@@ -12,6 +12,10 @@ import {
 
 import { Ionicons } from "@expo/vector-icons";
 
+import { BackHandler, ToastAndroid } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useRef } from "react";
+
 import { db } from "../firebase";
 import {
   collection,
@@ -72,6 +76,35 @@ export default function HomeScreen({ route, navigation }) {
 
     fetchUser();
   }, []);
+
+  const backPressCount = useRef(0);
+
+useFocusEffect(
+  useCallback(() => {
+    const onBackPress = () => {
+      if (backPressCount.current === 0) {
+        backPressCount.current += 1;
+        ToastAndroid.show("Press again to exit", ToastAndroid.SHORT);
+
+        setTimeout(() => {
+          backPressCount.current = 0;
+        }, 2000);
+
+        return true;
+      } else {
+        BackHandler.exitApp();
+        return true;
+      }
+    };
+
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      onBackPress
+    );
+
+    return () => subscription.remove(); // ✅ FIX DI SINI
+  }, [])
+);
 
   useEffect(() => {
     const showSub = Keyboard.addListener("keyboardDidShow", (e) => {

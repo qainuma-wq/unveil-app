@@ -62,7 +62,6 @@ export default function RegisterScreen({ navigation }) {
           <Text style={styles.buttonText}>Register</Text>
         </TouchableOpacity>
 
-        {/* 🔥 BALIKIN OPTION */}
         <TouchableOpacity onPress={() => navigation.navigate("Login")}>
           <Text style={styles.link}>Already have an account?</Text>
         </TouchableOpacity>

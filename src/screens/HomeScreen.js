@@ -220,7 +220,6 @@ export default function HomeScreen({ route, navigation }) {
       {/* INPUT AREA */}
       <View style={styles.bottomArea}>
         
-        {/* 🔥 COLOR PICKER (dipisah, ga nyatu) */}
         {isFocused && (
           <View style={styles.colorWrapper}>
             <View style={styles.colorRow}>

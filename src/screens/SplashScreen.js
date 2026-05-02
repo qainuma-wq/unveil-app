@@ -1,55 +1,60 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { View, ImageBackground, StyleSheet } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function SplashScreen({ navigation }) {
-  useEffect(() => {
-    let isMounted = true;
+  const isNavigated = useRef(false);
 
+  useEffect(() => {
     const startApp = async () => {
       try {
-        console.log("Splash started");
-
-        // fallback timeout (anti stuck)
+        // safety fallback (kalau async bermasalah)
         const fallback = setTimeout(() => {
-          if (isMounted) {
-            console.log("Fallback ke Login");
-            navigation.replace("Login");
+          if (!isNavigated.current) {
+            isNavigated.current = true;
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "Login" }],
+            });
           }
-        }, 2000);
+        }, 2500);
 
         const user = await AsyncStorage.getItem("user");
 
-        console.log("User:", user);
-
-        // clear fallback kalau berhasil
         clearTimeout(fallback);
 
-        if (!isMounted) return;
+        if (isNavigated.current) return;
+        isNavigated.current = true;
 
         if (user) {
-          navigation.replace("App", {
-            screen: "Home",
-            params: { username: user },
+          navigation.reset({
+            index: 0,
+            routes: [
+              {
+                name: "Home",
+                params: { username: user },
+              },
+            ],
           });
         } else {
-          navigation.replace("Login");
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "Login" }],
+          });
         }
 
       } catch (e) {
-        console.log("ERROR SPLASH:", e);
-
-        if (isMounted) {
-          navigation.replace("Login");
+        if (!isNavigated.current) {
+          isNavigated.current = true;
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "Login" }],
+          });
         }
       }
     };
 
     startApp();
-
-    return () => {
-      isMounted = false;
-    };
   }, []);
 
   return (
@@ -64,12 +69,6 @@ export default function SplashScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  image: {
-    flex: 1,
-    width: "100%",
-    height: "100%",
-  },
+  container: { flex: 1 },
+  image: { flex: 1, width: "100%", height: "100%" },
 });

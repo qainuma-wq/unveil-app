@@ -5,25 +5,32 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-
     "icon": "./assets/veilies.png",
-
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "cover",
       "backgroundColor": "#ffffff"
     },
-
     "ios": {
       "supportsTablet": true
     },
-
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/splash.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.unveilapp"
+      "package": "com.qainuma.unveilapp"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "11dc4dba-aee1-4a1c-843c-b67ff7e23a67"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/11dc4dba-aee1-4a1c-843c-b67ff7e23a67"
     }
   }
 }

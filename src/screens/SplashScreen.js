@@ -4,21 +4,52 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function SplashScreen({ navigation }) {
   useEffect(() => {
-    const startApp = async () => {
-      const user = await AsyncStorage.getItem("user");
+    let isMounted = true;
 
-      setTimeout(() => {
+    const startApp = async () => {
+      try {
+        console.log("Splash started");
+
+        // fallback timeout (anti stuck)
+        const fallback = setTimeout(() => {
+          if (isMounted) {
+            console.log("Fallback ke Login");
+            navigation.replace("Login");
+          }
+        }, 2000);
+
+        const user = await AsyncStorage.getItem("user");
+
+        console.log("User:", user);
+
+        // clear fallback kalau berhasil
+        clearTimeout(fallback);
+
+        if (!isMounted) return;
+
         if (user) {
           navigation.replace("App", {
             screen: "Home",
-            params: { username: user }, // ✅ FIX DI SINI
+            params: { username: user },
           });
         } else {
-            navigation.replace("Login")        }
-      }, 2000);
+          navigation.replace("Login");
+        }
+
+      } catch (e) {
+        console.log("ERROR SPLASH:", e);
+
+        if (isMounted) {
+          navigation.replace("Login");
+        }
+      }
     };
 
     startApp();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (
